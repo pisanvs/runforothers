@@ -23,6 +23,8 @@ class _RunnerSignUpPageState extends State<RunnerSignUpPage> {
   final TextEditingController nameController  = TextEditingController();
   final TextEditingController emailController = TextEditingController();
 
+  bool QROrID = false;
+
   @override
   void initState() {
     super.initState();
@@ -51,22 +53,41 @@ class _RunnerSignUpPageState extends State<RunnerSignUpPage> {
 
       final id = runnerRow[0]['id'];
 
-      final qrCode = QrCode(2, QrErrorCorrectLevel.H);
+      if (QROrID) {
+        final qrCode = QrCode(2, QrErrorCorrectLevel.H);
 
-      qrCode.addNumeric(id.toString());
-      final image = await _renderQrImage(qrCode);
+        qrCode.addNumeric(id.toString());
+        final image = await _renderQrImage(qrCode);
       
-      final doc = pw.Document();
-      doc.addPage(pw.Page(
-        build: (pw.Context context) {
-          return pw.Center(
-            child: pw.Image(image, width: 500, height: 500),
-          );
-        }
-      ));
+        final doc = pw.Document();
+        doc.addPage(pw.Page(
+          build: (pw.Context context) {
+            return pw.Center(
+              child: pw.Image(image, width: 500, height: 500),
+            );
+          }
+        ));
 
-      await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
-
+        await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save());
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Runner ID: $id'),
+              content: Text('Search for the QR Code with the ID on the bottom'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
     } on PostgrestException catch (err) {
       // TODO: Show exception to user
       print(err.message);
