@@ -24,3 +24,9 @@ jobs:
       working-directory: ./satellites
     - run: flutter build appbundle
       working-directory: ./satellites
+    - name: Archive apk package
+      uses: actions/upload-artifact@v4
+      with:
+        name: App
+        path: ./satellites/build/app/outputs/apk/release
+
