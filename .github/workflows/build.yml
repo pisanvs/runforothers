@@ -1,8 +1,10 @@
 name: Build
 run-name: Testing build
 on: [push]
+
 jobs:
   build-for-android:
+    runs-on: ubuntu-latest
     steps:
     - name: Clone repository
       uses: actions/checkout@v4
