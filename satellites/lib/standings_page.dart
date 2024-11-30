@@ -64,7 +64,7 @@ class _StandingsPageState extends State<StandingsPage> {
         'name': runner['name'],
         'laps': runnerLapCounts[runnerId]?.toString() ?? '0',
       };
-    }).toList();
+    }).toList()..sort((a, b) => b['laps'].compareTo(a['laps']));
   }
 
 

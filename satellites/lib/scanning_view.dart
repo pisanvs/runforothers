@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 //import 'package:mobile_scanner_example/scanner_error_widget.dart';
+import 'package:vibration/vibration.dart';
 
 class ScanningView extends StatefulWidget {
   final int stationID;
@@ -21,7 +22,7 @@ class _ScanningViewState extends State<ScanningView>
     autoStart: true,
     detectionSpeed: DetectionSpeed.unrestricted,
     useNewCameraSelector: true,
-
+    formats: [BarcodeFormat.qrCode],
   );
 
   StreamSubscription<Object?>? _subscription;
@@ -30,9 +31,9 @@ class _ScanningViewState extends State<ScanningView>
   final List<Map<String, dynamic>> _barcodeBuffer = [];
 
   Timer? _timer;
-  Timer? _bufferTimer;
 
   bool _displayPreview = true;
+  bool _hasVibrator = false;
 
   @override
   void initState() {
@@ -42,10 +43,11 @@ class _ScanningViewState extends State<ScanningView>
     _subscription = controller.barcodes.listen(_handleBarcode);
     unawaited(controller.start());
 
-    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       _removeOldCodes();
     });
-    _bufferTimer = Timer(const Duration(seconds: 30), _sendBufferedBarcodes);
+
+    Vibration.hasVibrator().then((val) {_hasVibrator = true;});
   }
 
   @override
@@ -74,13 +76,13 @@ class _ScanningViewState extends State<ScanningView>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        //setState(() {
-        //  _displayPreview = !_displayPreview;
-        //});
+        setState(() {
+         _displayPreview = !_displayPreview;
+        });
       },
       child: Stack(
         children: [
-            true
+            _displayPreview
               ? MobileScanner(
                   controller: controller,
                   errorBuilder: (ctx, err, chld) {
@@ -95,6 +97,10 @@ class _ScanningViewState extends State<ScanningView>
   }
 
   void _handleBarcode(BarcodeCapture capt) {
+
+    if (_hasVibrator) {
+      Vibration.vibrate(duration: 10);
+    }
 
     final currentTime = DateTime.now();
     for (var barcode in capt.barcodes) {
@@ -111,9 +117,10 @@ class _ScanningViewState extends State<ScanningView>
   }
 
   void _removeOldCodes() {
+    _sendBufferedBarcodes();
     final currentTime = DateTime.now();
     _scannedBarcodes.removeWhere(
-        (key, value) => currentTime.difference(value).inSeconds > 45);
+        (key, value) => currentTime.difference(value).inSeconds > 30);
     for (var barcode in _scannedBarcodes.entries) {
       print('${barcode.key}: ${barcode.value}');
     }
@@ -121,7 +128,6 @@ class _ScanningViewState extends State<ScanningView>
 
   void _sendBufferedBarcodes() {
     // TODO: Add some sort of redundancy
-    if (_barcodeBuffer.isNotEmpty) {
       final future = Supabase.instance.client
           .from("runner_logs")
           .insert(_barcodeBuffer)
@@ -131,7 +137,6 @@ class _ScanningViewState extends State<ScanningView>
         print("Buffered barcodes sent");
         _barcodeBuffer.clear();
       });
-    }
   }
 
   @override
@@ -141,7 +146,6 @@ class _ScanningViewState extends State<ScanningView>
     _subscription = null;
     super.dispose();
     _timer?.cancel();
-    _bufferTimer?.cancel();
     await controller.dispose();
   }
 }
