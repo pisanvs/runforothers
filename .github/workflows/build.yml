@@ -12,6 +12,10 @@ jobs:
       uses: subosito/flutter-action@v2
       with:
         flutter-version: 3.24.5
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt' # See 'Supported distributions' for available options
+        java-version: '17'
     - run: flutter pub get
       working-directory: ./satellites
 #    - run: flutter test
@@ -20,3 +24,9 @@ jobs:
       working-directory: ./satellites
     - run: flutter build appbundle
       working-directory: ./satellites
+    - name: Archive apk package
+      uses: actions/upload-artifact@v4
+      with:
+        name: App
+        path: ./satellites/build/app/outputs/apk/release
+
